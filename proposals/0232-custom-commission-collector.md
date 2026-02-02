@@ -4,9 +4,9 @@ title: Custom Commission Collector Account
 authors: Justin Starry (Anza)
 category: Standard
 type: Core
-status: Review
+status: Accepted
 created: 2025-01-24
-feature: (fill in with feature tracking issues once accepted)
+feature: ccc993d4EUAmsKZCkceVwjcChiiCqsgmV4avEW3i8HJ
 ---
 
 ## Summary
@@ -125,9 +125,7 @@ pub enum VoteInstruction {
     ///   0. `[WRITE]` Vote account to be updated with the new collector public key
     ///   1. `[WRITE]` New collector account
     ///   2. `[SIGNER]` Withdraw authority
-    UpdateCommissionCollector { // 16u32
-        kind: CommissionKind,
-    },
+    UpdateCommissionCollector(CommissionKind),
 }
 
 #[repr(u8)]
@@ -137,10 +135,16 @@ pub enum CommissionKind {
 }
 ```
 
+#### `UpdateValidatorIdentity`
+
+The existing `UpdateValidatorIdentity` instruction MUST stop updating the
+`block_revenue_collector` field to the new node pubkey value since this proposal
+adds the ability to set that field explicitly.
+
 #### `UpdateCommissionCollector`
 
 A new instruction for setting collector accounts will be added to the vote
-program with the enum discriminant value of `16u32` little endian encoded in the
+program with the enum discriminant value of `17u32` little endian encoded in the
 first 4 bytes.
 
 Perform the following checks:
@@ -153,7 +157,7 @@ Perform the following checks:
 instruction or is not a signer, return
 `InstructionError::MissingRequiredSignature`
 - If the new collector account (index `1`) is not the same as the vote account
-and not system program owned, return `InstructionError::InvalidAccountOwner` 
+and is not system program owned, return `InstructionError::InvalidAccountOwner` 
 - If the new collector account is not rent-exempt, return
 `InstructionError::InsufficientFunds`
 - If the new collector account is not writable, return
