@@ -5,8 +5,11 @@ authors:
   - (fill in with names of authors)
 category: Standard/Meta
 type: Core/Networking/Interface/Meta
+status: Draft
 created: (fill me in with today's date, YYYY-MM-DD)
 feature: (fill in with feature key and github tracking issues once accepted)
+development: (optional - fill in per-client implementation status once
+ accepted, e.g. "Anza - Implemented (link)", "Firedancer - WIP (link)")
 supersedes: (optional - fill this in if the SIMD supersedes a previous SIMD)
 superseded-by: (optional - fill this in if the SIMD is superseded by a subsequent
  SIMD)
