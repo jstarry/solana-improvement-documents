@@ -7,7 +7,9 @@ category: Standard
 type: Core
 status: Activated
 created: 2023-01-30
-feature: tvcF6b1TRz353zKuhBjinZkKzjmihXmBAHJdjNYw1sQ(https://github.com/solana-labs/solana/issues/32857)
+feature:
+  - 7axKe5BTYBDD87ftzWbk5DfzWMGyRvqmWTduuo22Yaqy (`vote_state_add_vote_latency`)
+  - tvcF6b1TRz353zKuhBjinZkKzjmihXmBAHJdjNYw1sQ (`timely_vote_credits`, https://github.com/solana-labs/solana/issues/32857)
 development: 
   - Anza - implemented
   - Firedancer - implemented
