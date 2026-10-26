@@ -5,7 +5,7 @@ authors:
   - Emanuele Cesena
 category: Standard
 type: Core
-status: Review
+status: Implemented
 created: 2025-07-08
 feature:
 ---

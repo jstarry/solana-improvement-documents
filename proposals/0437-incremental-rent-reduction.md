@@ -5,7 +5,7 @@ authors:
   - Igor Durovic (anza)
 category: Standard
 type: Core
-status: Idea
+status: Implemented
 created: 2025-12-22
 supersedes: '0436'
 feature: (fill in with feature key and github tracking issues once accepted)
