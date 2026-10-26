@@ -5,7 +5,7 @@ authors:
   - Dean Little (Blueshift)
 category: Standard
 type: Core
-status: Idea
+status: Implemented
 created: 2026-04-03
 feature: (fill in with feature key and github tracking issues once accepted)
 ---
