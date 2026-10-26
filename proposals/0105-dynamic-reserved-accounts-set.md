@@ -9,8 +9,8 @@ status: Activated
 created: 2024-01-17
 feature: 8U4skmMVnF6k2kMvrWbQuRUT3qQSiTYpSjqmhmgfthZu (https://github.com/solana-labs/solana/issues/34899)
 development:
-  - Anza - Not Started
-  - Firedancer - Not Started
+  - Anza - Implemented
+  - Firedancer - Implemented
 ---
 
 ## Summary

@@ -9,8 +9,8 @@ status: Activated
 created: 2024-03-15
 feature: CLCoTADvV64PSrnR6QXty6Fwrt9Xc6EdxSJE4wLRePjq
 development:
-  - Anza - Not Started
-  - Firedancer - Not started
+  - Anza - Implemented
+  - Firedancer - Implemented
 ---
 
 ## Summary
