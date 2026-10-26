@@ -8,7 +8,10 @@ category: Standard
 type: Core
 status: Review
 created: 2025-01-06
-feature: C37iaPi6VE4CZDueU1vL8y6pGp5i8amAbEsF31xzz723
+feature: C37iaPi6VE4CZDueU1vL8y6pGp5i8amAbEsF31xzz723 (retired without activation in https://github.com/anza-xyz/agave/pull/10348)
+superseded-by:
+  - '0459'
+  - '0460'
 ---
 
 ## Summary
