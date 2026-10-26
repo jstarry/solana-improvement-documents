@@ -7,7 +7,10 @@ category: Standard
 type: Core
 status: Activated
 created: 2024-06-13
-feature: zkhiy5oLowR7HY4zogXjCjeMXyruLqBwSWH21qcFtnv
+feature:
+  - zkhiy5oLowR7HY4zogXjCjeMXyruLqBwSWH21qcFtnv (`zk_elgamal_proof_program_enabled`)
+  - zkdoVwnSFnSLtGJG7irJPEYUpmb4i7sGMGcnN6T9rnC (`disable_zk_elgamal_proof_program`, https://github.com/anza-xyz/agave/pull/6523)
+  - zkexuyPRdyTVbZqEAREueqL2xvvoBhRgth9xGSc1tMN (`reenable_zk_elgamal_proof_program`, https://github.com/anza-xyz/agave/pull/10000)
 ---
 
 ## Summary
