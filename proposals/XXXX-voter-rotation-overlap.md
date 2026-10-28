@@ -27,16 +27,16 @@ Changing that key is a hard cutover at one exact slot:
 
 - `VoterWithBLS` ([SIMD-0387]) records the new authorized voter for epoch
   `N + 2` and immediately overwrites the vote account's only BLS key slot
-  ([handler.rs L129-164][handler-set-voter]).
+  ([handler.rs L119-154][handler-set-voter]).
 - The rank map for an epoch is built from the epoch stakes snapshot of vote
   accounts, which for epoch `E` is taken at the first slot of epoch `E - 1`
-  ([bank.rs L2722][bank-epoch-stakes], [epoch_stakes.rs L70-139][rank-map]).
+  ([bank.rs L2762][bank-epoch-stakes], [epoch_stakes.rs L68-137][rank-map]).
   So the new key is the only valid key from the first slot of `N + 2`, and the
   old key is invalid from that same slot.
 
 A validator whose old and new keys are loaded in the same process rotates
 without a gap, because the voting client picks whichever loaded keypair matches
-the rank map ([voting_utils.rs L152-232][generate-vote]). Many real rotations
+the rank map ([voting_utils.rs L150-230][generate-vote]). Many real rotations
 are not like that:
 
 - Moving vote authority to a new host, HSM or remote signer. The new signer must
@@ -188,7 +188,7 @@ did these checks ([vote_pool.rs L5][vote-pool]).
 ### Certificates
 
 Certificate encoding is unchanged. A certificate is an aggregate signature plus
-a rank bitmap ([certificate.rs L58][certificate]). In a rotation epoch, bitmaps
+a rank bitmap ([certificate.rs L60][certificate]). In a rotation epoch, bitmaps
 index ranks `0..n + k`, and the decoder's maximum validator count MUST be
 `n + k`.
 
@@ -196,10 +196,10 @@ A certificate MUST be rejected if, for any primary rank `r` with alias rank
 `a(r)`, both `r` and `a(r)` are set. This applies within one bitmap, and across
 the primary and fallback bitmaps of a base-3 encoded certificate. It extends
 the existing rejection of overlapping primary and fallback bitmaps
-([cert_verify.rs L41][cert-verify-overlap]). Stake toward a certificate's
+([cert_verify.rs L38][cert-verify-overlap]). Stake toward a certificate's
 threshold counts each vote account once.
 
-Verification then works as today ([cert_verify.rs L74][cert-verify]). The
+Verification then works as today ([cert_verify.rs L71][cert-verify]). The
 verifier aggregates the public keys of the set ranks, using `K_prev` for an
 alias rank, and checks the aggregate signature. This needs no extra pairings.
 The added cost is one G1 point addition per alias rank set. Certificates grow
@@ -217,7 +217,7 @@ client holding the primary key SHOULD use it. A client that holds only the
 previous key MAY vote under the alias rank during the rotation epoch.
 
 Clients that refuse to vote when their identity does not match the rank map's
-node pubkey (Agave's hot-spare check, [voting_utils.rs L203][hot-spare]) MUST
+node pubkey (Agave's hot-spare check, [voting_utils.rs L201][hot-spare]) MUST
 compare against the alias entry's node pubkey when voting under an alias rank.
 That node pubkey comes from `R_{E-1}`.
 
@@ -241,6 +241,31 @@ Behavior is gated by a new feature. `R_E` contains alias entries if and only if
 the feature is active at the first slot of epoch `E - 1`, the slot at which the
 epoch stakes for `E` are computed. Validators MUST accept alias ranks in votes
 and certificates only for slots in such epochs.
+
+### Determinism and emergency rotations
+
+Whether a vote account has an alias rank in epoch `E` MUST be decided only from
+the epoch stakes for `E - 1` and `E`. Those are fixed by the first slot of
+`E - 1`, are saved in bank snapshots, and are never rebuilt. As a result, every
+validator verifies votes and certificates for `E` against the same rank map,
+whatever fork it is on. Today's rank map has the same property: it is built
+from the epoch stakes alone ([epoch_stakes.rs L334-345][rank-map-init]).
+
+A late opt-out, which would cancel an alias after the epoch stakes for `E` are
+fixed, is therefore not possible. It would require either changing epoch
+stakes that are already fixed, or checking live vote account state during
+vote and certificate verification, which would make validity depend on the
+fork.
+
+A compatible extension is an opt-out set at rotation time. It would be a flag
+written in the same `VoterWithBLS` instruction that sets the new key, so it
+lands in the same epoch stakes snapshot as the key itself. The rank map builder
+would then skip the alias for that account. This restores today's behavior for
+an emergency rotation, with the old key valid until the end of `N + 1`, and it
+needs no faster propagation than the rotation itself. It requires a vote
+account field, which only Vote Account v5 ([SIMD-0701]) has room for, and a
+vote program change. It is left out of this proposal so that the proposal makes
+no vote program change.
 
 ### Edge Cases
 
@@ -312,10 +337,18 @@ and certificates only for slots in such epochs.
   valid until the end of `N + 1`. With this proposal, it stays valid until the
   end of `N + 2`. For an emergency rotation after a key compromise, this extends
   the attacker's window by one epoch. During that epoch, conflicting votes
-  signed with the stolen key are attributed to the honest vote account. See the
-  first open question.
+  signed with the stolen key are attributed to the honest vote account. See
+  [Determinism and emergency rotations](#determinism-and-emergency-rotations)
+  for why this window cannot be cut short after the fact, and for the
+  rotation-time opt-out that would remove it.
 - **Double counting:** prevented by the rule that a certificate never sets both
   a rank and its alias.
+- **Stake of a rotating account:** the alias rank carries ordinary stake, with
+  no cap and no exclusion from any threshold. Because a certificate sets a rank
+  or its alias but never both, the account's stake counts at most once. An
+  attacker holding a retired key has the same power as today, when a stolen key
+  stays valid until the end of `N + 1`. The overlap only extends that by one
+  epoch.
 - **Equivocation:** defined across both keys by attributing alias votes to the
   vote account. Any future slashing proposal (e.g. [SIMD-0204]) MUST treat
   conflicting votes under a rank and its alias as equivocation by that account.
@@ -328,16 +361,6 @@ and certificates only for slots in such epochs.
 - It adds a small amount of rank-map and verification complexity to every
   client, for an event (key rotation) that is rare per validator.
 - It extends a compromised key's validity by one epoch.
-
-### Open Questions
-
-- Should an operator be able to opt out of the overlap for an emergency
-  rotation? An opt-out needs a vote program signal, such as a flag on
-  `VoterWithBLS` or a field in Vote Account v5. That would make this proposal
-  depend on a vote program change.
-- Should the alias entry's stake be capped, or excluded from the fast-finalize
-  (80%) threshold, while the account is rotating? This proposal treats it as
-  ordinary stake.
 
 ## Backwards Compatibility
 
@@ -367,12 +390,13 @@ ranks.
 [SIMD-0701]: https://github.com/solana-foundation/solana-improvement-documents/pull/701
 [RFC 2119]: https://www.ietf.org/rfc/rfc2119.txt
 [RFC 8174]: https://www.ietf.org/rfc/rfc8174.txt
-[handler-set-voter]: https://github.com/anza-xyz/agave/blob/fc97277140a71d16ea3cfe7e14057690011d8374/programs/vote/src/vote_state/handler.rs#L129-L164
-[bank-epoch-stakes]: https://github.com/anza-xyz/agave/blob/fc97277140a71d16ea3cfe7e14057690011d8374/runtime/src/bank.rs#L2722
-[rank-map]: https://github.com/anza-xyz/agave/blob/fc97277140a71d16ea3cfe7e14057690011d8374/runtime/src/epoch_stakes.rs#L70-L139
-[generate-vote]: https://github.com/anza-xyz/agave/blob/fc97277140a71d16ea3cfe7e14057690011d8374/votor/src/voting_utils.rs#L152-L232
-[hot-spare]: https://github.com/anza-xyz/agave/blob/fc97277140a71d16ea3cfe7e14057690011d8374/votor/src/voting_utils.rs#L203
-[vote-pool]: https://github.com/anza-xyz/agave/blob/fc97277140a71d16ea3cfe7e14057690011d8374/votor/src/consensus_pool/vote_pool.rs#L5
-[certificate]: https://github.com/anza-xyz/agave/blob/fc97277140a71d16ea3cfe7e14057690011d8374/votor-messages/src/certificate.rs#L58
-[cert-verify]: https://github.com/anza-xyz/agave/blob/fc97277140a71d16ea3cfe7e14057690011d8374/bls-cert-verify/src/cert_verify.rs#L74
-[cert-verify-overlap]: https://github.com/anza-xyz/agave/blob/fc97277140a71d16ea3cfe7e14057690011d8374/bls-cert-verify/src/cert_verify.rs#L41
+[handler-set-voter]: https://github.com/anza-xyz/agave/blob/v4.4.0-rc.1/programs/vote/src/vote_state/handler.rs#L119-L154
+[bank-epoch-stakes]: https://github.com/anza-xyz/agave/blob/v4.4.0-rc.1/runtime/src/bank.rs#L2762
+[rank-map]: https://github.com/anza-xyz/agave/blob/v4.4.0-rc.1/runtime/src/epoch_stakes.rs#L68-L137
+[rank-map-init]: https://github.com/anza-xyz/agave/blob/v4.4.0-rc.1/runtime/src/epoch_stakes.rs#L334-L345
+[generate-vote]: https://github.com/anza-xyz/agave/blob/v4.4.0-rc.1/votor/src/voting_utils.rs#L150-L230
+[hot-spare]: https://github.com/anza-xyz/agave/blob/v4.4.0-rc.1/votor/src/voting_utils.rs#L201
+[vote-pool]: https://github.com/anza-xyz/agave/blob/v4.4.0-rc.1/votor/src/consensus_pool/vote_pool.rs#L5
+[certificate]: https://github.com/anza-xyz/agave/blob/v4.4.0-rc.1/votor-messages/src/certificate.rs#L60
+[cert-verify]: https://github.com/anza-xyz/agave/blob/v4.4.0-rc.1/bls-cert-verify/src/cert_verify.rs#L71
+[cert-verify-overlap]: https://github.com/anza-xyz/agave/blob/v4.4.0-rc.1/bls-cert-verify/src/cert_verify.rs#L38
